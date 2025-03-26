@@ -1,6 +1,6 @@
 ## 🗺️ MapViewer-Vue-Leaflet-SpringBoot 
-
-An interactive **map viewer** built using **Vue.js**, **Leaflet**, and **Spring Boot**. This project allows users to search locations, view maps, and authenticate securely using Spring Security.
+<img width="1582" alt="Image" src="https://github.com/user-attachments/assets/f0bb434f-334a-4762-acfa-5bda2f9a1c92" />
+An interactive map viewer built using Vue.js, Leaflet, and Spring Boot. This project allows users to search locations, view maps, and authenticate securely using Spring Security.
 
 ## Features  
 ### **Frontend (Vue.js + Leaflet)**  
