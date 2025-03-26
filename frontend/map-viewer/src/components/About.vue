@@ -13,7 +13,6 @@
         <v-btn color="green darken-2" class="rounded-pill mx-2 px-6" @click="$router.push('/signup')">Sign Up</v-btn>
       </v-app-bar>
 
-      <!-- Hero Section -->
       <v-container class="hero-section text-center">
         <v-row justify="center">
           <v-col cols="12" md="8">
