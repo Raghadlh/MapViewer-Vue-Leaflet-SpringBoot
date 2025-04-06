@@ -29,7 +29,10 @@
             prepend-icon="mdi-lock"
             v-model="password"
             label="Password"
-            type="password"
+            :rules="[v => v.length >= 6 || 'Password must be at least 6 characters']"
+            :type="showPassword ? 'text' : 'password'"
+            append-icon="mdi-eye"
+            @click:append="showPassword = !showPassword"
             required
           ></v-text-field>
 
@@ -56,6 +59,7 @@ export default {
       email: '',
       password: '',
       message: '',
+      showPassword: false,
     };
   },
   methods: {

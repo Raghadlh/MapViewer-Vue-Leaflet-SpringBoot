@@ -20,7 +20,9 @@
               prepend-icon="mdi-lock"
               v-model="password"
               label="Password"
-              type="password"
+              :type="showPassword ? 'text' : 'password'"
+              append-icon="mdi-eye"
+              @click:append="showPassword = !showPassword"
               required
             ></v-text-field>
   
@@ -48,6 +50,7 @@
         username: '',
         password: '',
         error: '',
+        showPassword: false,
       };
     },
     methods: {
