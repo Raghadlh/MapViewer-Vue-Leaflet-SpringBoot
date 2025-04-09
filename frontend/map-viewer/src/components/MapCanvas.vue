@@ -4,10 +4,11 @@
       :searchLocation="searchLocation"
       :takeScreenshot="takeScreenshot"
       :useMyLocation="useMyLocation"
+      @planRoute="handleRoutePlanning"
     />
     <v-main>
       
-      <MapViewer ref="mapViewerRef" />
+      <MapViewer ref="mapViewerRef" @planRoute="handleRoutePlanning"/>
     </v-main>
   </v-app>
 </template>
@@ -21,14 +22,14 @@ const mapViewerRef = ref(null);
 
 const searchLocation = (locationData) => {
   try {
-    console.log("searchLocation called with:", locationData); // Debugging
+    console.log("searchLocation called with:", locationData); 
     if (mapViewerRef.value) {
       mapViewerRef.value.searchLocation(locationData);
     } else {
       console.error("MapViewer reference is not available.");
     }
   } catch (error) {
-    console.error("Error in searchLocation:", error); // Debugging
+    console.error("Error in searchLocation:", error); 
   }
 };
 
@@ -43,4 +44,13 @@ const useMyLocation = () => {
     mapViewerRef.value.useMyLocation();
   }
 };
+
+const handleRoutePlanning = (routeData) => {
+  if (mapViewerRef.value) {
+    mapViewerRef.value.planRoute(routeData); 
+  } else {
+    console.error("MapViewer reference not ready.");
+  }
+};
+
 </script>

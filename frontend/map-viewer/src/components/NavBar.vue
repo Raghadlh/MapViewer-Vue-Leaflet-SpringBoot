@@ -84,10 +84,47 @@
       <v-divider class="my-2"></v-divider>
 
       <v-list-item @click="takeScreenshot" title="Take Screenshot" prepend-icon="mdi-camera"></v-list-item>
+      
+      <!-- Routing Trigger -->
+      <v-list-item @click="routingDialog = true" prepend-icon="mdi-map-marker-path" title="Routing"></v-list-item>
+
+      <!-- Routing Dialog -->
+<v-dialog v-model="routingDialog" max-width="400">
+  <v-card class="pa-4">
+    <v-card-title>
+      <span class="text-h6">Plan Route</span>
+    </v-card-title>
+    <v-card-text>
+      <v-text-field
+        v-model="routeStart"
+        label="Start Location"
+        variant="outlined"
+        density="compact"
+        rounded="xl"
+        hide-details
+        class="mb-3"
+      />
+      <v-text-field
+        v-model="routeEnd"
+        label="Destination"
+        variant="outlined"
+        density="compact"
+        rounded="xl"
+        hide-details
+      />
+    </v-card-text>
+    <v-card-actions>
+      <v-spacer></v-spacer>
+      <v-btn color="grey" variant="text" @click="routingDialog = false">Cancel</v-btn>
+      <v-btn color="green" rounded="xl" @click="calculateRoute">Show Route</v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+
+
 
        <!-- About Section -->
        <v-divider class="my-2"></v-divider>
-
       <v-list-item  @click="$router.push('/about')" title="About"  prepend-icon="mdi-information-outline"></v-list-item>
   
 
@@ -123,6 +160,7 @@ import { ref, onMounted, onUnmounted, reactive } from "vue";
 import { useTheme } from "vuetify";
 import { useRouter } from "vue-router";
 
+
 // Profile
 const username = ref("Explorer");
 const stored = localStorage.getItem("username");
@@ -152,7 +190,11 @@ const searchSuggestions = ref([]);
 const isSearching = ref(false);
 
 // Props
-const props = defineProps(["searchLocation", "takeScreenshot", "useMyLocation"]);
+const props = defineProps(["searchLocation", "takeScreenshot", "useMyLocation","map",
+  "greenIcon"]);
+
+  const map = props.map;
+const greenIcon = props.greenIcon;
 
 // Close dropdown when clicking outside
 const closeDropdown = (event) => {
@@ -241,6 +283,24 @@ const toggleFullscreen = () => {
   }
   isFullscreen.value = !isFullscreen.value;
 };
+
+//Routing
+const routingDialog = ref(false);
+const routeStart = ref("");
+const routeEnd = ref("");
+const emit = defineEmits(["planRoute"]);
+const calculateRoute = () => {
+  if (!routeStart.value || !routeEnd.value) {
+    alert("Please enter both start and end locations.");
+    return;
+  }
+  emit("planRoute", {
+    start: routeStart.value,
+    end: routeEnd.value,
+    routingDialog:routingDialog.value = false,
+  });
+};
+
 
 // Logout
 const confirmLogout = () => {

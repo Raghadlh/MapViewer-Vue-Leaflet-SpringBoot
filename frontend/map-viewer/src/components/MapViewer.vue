@@ -4,6 +4,8 @@ import L from "leaflet";
 import "leaflet-draw";
 import "leaflet-draw/dist/leaflet.draw.css";
 import leafletImage from "leaflet-image";
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+import 'leaflet-routing-machine';
 
 
 const mapContainer = ref(null);
@@ -12,6 +14,14 @@ const showWelcome = ref(true)
 
 let map;
 let drawnItems;
+
+var greenIcon = new L.Icon({
+      iconUrl: '/marker-icon-2x-green.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    });
 
 
 // Initialize the map
@@ -23,12 +33,11 @@ onMounted(() => {
   if (mapContainer.value) {
 
     map = L.map(mapContainer.value, { zoomControl: false,renderer: L.canvas() }).setView([24.7136, 46.6753], 10);
-   
-    L.marker([24.7136, 46.6753]).addTo(map);
 
     L.control.zoom({
       position: 'bottomright'
     }).addTo(map);
+
 
     // Tile layers
     const basemaps = {
@@ -46,6 +55,17 @@ onMounted(() => {
         subdomains: 'abcd',
         maxZoom: 20
       }),
+      
+    WorldImagery: L.layerGroup([
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, etc.'
+    }),
+    L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_terrain_labels/{z}/{x}/{y}{r}.png', {
+      minZoom: 0,
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.stadiamaps.com/">Stadia</a> & Stamen & OpenMapTiles & OSM contributors',
+    })
+    ]),
       Satellite: L.tileLayer.wms("https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi", {
         layers: "BlueMarble_ShadedRelief",
         format: "image/png",
@@ -103,12 +123,53 @@ onMounted(() => {
     map.on("draw:created", (event) => { drawnItems.addLayer(event.layer); });
     map.on("draw:deleted", (event) => { console.log("Deleted items:", event.layers); });
 
-  
+  const ResetViewControl = L.Control.extend({
+  options: {
+    position: 'bottomright', 
+  },
+  onAdd: function () {
+    const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+    container.innerHTML = '<i class="mdi mdi-refresh" style="font-size: 20px;"></i>';
+    container.title = 'Reset Map: View, Markers & Routes';
+    container.style.backgroundColor = 'white';
+    container.style.width = '34px';
+    container.style.height = '34px';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.style.cursor = 'pointer';
+
+  container.onclick = function () {
+  // Reset view
+  map.setView([24.7136, 46.6753], 10);
+
+  // Remove all markers
+  map.eachLayer((layer) => {
+    if (layer instanceof L.Marker) {
+      map.removeLayer(layer);
+    }
+  });
+
+  // Remove routing control if it exists
+  if (routingControl) {
+    map.removeControl(routingControl);
+    routingControl = null;
+  }
+
+  if (drawnItems) {
+    drawnItems.clearLayers();
+  }
+};
+
+
+    return container;
+  }
+  });
+  map.addControl(new ResetViewControl());
+
   }
 
 });
-
-
 
 //Search Function
 const searchLocation = (locationData) => {
@@ -127,7 +188,7 @@ const searchLocation = (locationData) => {
     });
 
     // Add new marker
-    L.marker([lat, lon])
+    L.marker([lat, lon],{icon: greenIcon})
       .addTo(map)
       .bindPopup(`<b>${displayName}</b>`)
       .openPopup();
@@ -135,6 +196,45 @@ const searchLocation = (locationData) => {
     console.error("Error in searchLocation (MapViewer):", error);
   }
 };
+//Routing
+let routingControl = null;
+
+const planRoute = async ({ start, end }) => {
+  try {
+    const fetchCoord = async (query) => {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`
+      );
+      const [location] = await res.json();
+      return location ? [parseFloat(location.lat), parseFloat(location.lon)] : null;
+    };
+
+    const startCoords = await fetchCoord(start);
+    const endCoords = await fetchCoord(end);
+
+    if (!startCoords || !endCoords) {
+      alert("Could not find one of the locations.");
+      return;
+    }
+
+    if (routingControl) {
+      map.removeControl(routingControl);
+    }
+
+    routingControl = L.Routing.control({
+      waypoints: [L.latLng(startCoords), L.latLng(endCoords)],
+      routeWhileDragging: true,
+      createMarker: function (i, wp) {
+        return L.marker(wp.latLng, { icon: greenIcon, draggable: true });
+      },
+    }).addTo(map);
+
+  } catch (error) {
+    console.error("Routing error:", error);
+    alert("Failed to calculate route.");
+  }
+};
+
 
 // Geolocation
 const useMyLocation = () => {
@@ -143,7 +243,7 @@ const useMyLocation = () => {
       (position) => {
         const { latitude, longitude } = position.coords;
         map.setView([latitude, longitude], 12);
-        L.marker([latitude, longitude]).addTo(map);
+        L.marker([latitude, longitude],{icon: greenIcon}).addTo(map);
       },
       () => {
         alert("Failed to get location. Please enable GPS.");
@@ -172,8 +272,8 @@ const takeScreenshot = () => {
 };
 
 
-
-defineExpose({ searchLocation, takeScreenshot, useMyLocation });
+defineExpose({ searchLocation, takeScreenshot, useMyLocation,planRoute,map,
+  greenIcon});
 </script>
 
 <template>
@@ -194,7 +294,7 @@ defineExpose({ searchLocation, takeScreenshot, useMyLocation });
 </v-dialog>
 
 
-  <div ref="mapContainer" class="map-container">
+  <div ref="mapContainer" class="map-container"> 
   </div>
 
 </template>
@@ -206,6 +306,8 @@ defineExpose({ searchLocation, takeScreenshot, useMyLocation });
     width: 100%;
     overflow: hidden;
 }
-
+.leaflet-control-custom {
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
 
 </style>
