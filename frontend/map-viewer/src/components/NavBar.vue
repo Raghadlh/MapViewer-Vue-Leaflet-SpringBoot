@@ -9,28 +9,13 @@
     <div style="position: relative; width: 500px; z-index: 9999;">
       <v-menu v-model="isSearching" :close-on-content-click="false" offset-y>
         <template v-slot:activator="{ props }">
-          <v-text-field
-            v-model="searchQuery"
-            label="Search location..."
-            hide-details
-            dense
-            rounded="xl"
-            variant="outlined"
-            single-line
-            clearable
-            append-inner-icon="mdi-magnify"
-            @keydown.enter="onEnter"
-            @input="fetchSuggestions"
-            v-bind="props"
-          />
+          <v-text-field v-model="searchQuery" label="Search location..." hide-details dense rounded="xl"
+            variant="outlined" single-line clearable append-inner-icon="mdi-magnify" @keydown.enter="onEnter"
+            @input="fetchSuggestions" v-bind="props" />
         </template>
 
         <v-list class="search-results" v-if="searchQuery">
-          <v-list-item
-            v-for="item in searchSuggestions"
-            :key="item.place_id"
-            @click="onSelectResult(item)"
-          >
+          <v-list-item v-for="item in searchSuggestions" :key="item.place_id" @click="onSelectResult(item)">
             <v-list-item-title>{{ item.title }}</v-list-item-title>
           </v-list-item>
         </v-list>
@@ -41,39 +26,21 @@
       Search
     </v-btn>
 
-    <v-btn
-    variant="outlined"
-    color="green"
-      class="ml-5"
+    <v-btn variant="outlined" color="green" class="ml-5"
       :icon="theme.global.current.value.dark ? 'mdi-lightbulb-outline' : 'mdi-lightbulb-on-outline'"
-      @click="toggleTheme"
-    ></v-btn>
+      @click="toggleTheme"></v-btn>
 
   </v-app-bar>
 
-  <v-navigation-drawer
-    v-model="drawer"
-    :rail="rail"
-    permanent
-    @click="rail = false"
-    :elevation="0"
-    class="modern-drawer"
-    width="300"
-  >
+  <v-navigation-drawer v-model="drawer" :rail="rail" permanent @click="rail = false" :elevation="0"
+    class="modern-drawer" width="300">
     <v-list class="d-flex flex-column fill-height">
       <!-- User Profile Section -->
-      <v-list-item
-        :prepend-avatar="'https://api.dicebear.com/9.x/dylan/svg?seed=' + randomSeed"
-        class="py-4 border-b"
-      >
+      <v-list-item :prepend-avatar="'https://api.dicebear.com/9.x/dylan/svg?seed=' + randomSeed" class="py-4 border-b">
         <v-list-item-title> {{ username }} </v-list-item-title>
         <template v-slot:append>
-            <v-btn
-              icon="mdi-chevron-left"
-              variant="text"
-              @click.stop="rail = !rail"
-            ></v-btn>
-          </template>
+          <v-btn icon="mdi-chevron-left" variant="text" @click.stop="rail = !rail"></v-btn>
+        </template>
       </v-list-item>
 
       <v-list-item @click="toggleFullscreen" title="Fullscreen" prepend-icon="mdi-fullscreen"></v-list-item>
@@ -84,60 +51,44 @@
       <v-divider class="my-2"></v-divider>
 
       <v-list-item @click="takeScreenshot" title="Take Screenshot" prepend-icon="mdi-camera"></v-list-item>
-      
+
       <!-- Routing Trigger -->
       <v-list-item @click="routingDialog = true" prepend-icon="mdi-map-marker-path" title="Routing"></v-list-item>
 
       <!-- Routing Dialog -->
-<v-dialog v-model="routingDialog" max-width="400">
-  <v-card class="pa-4">
-    <v-card-title>
-      <span class="text-h6">Plan Route</span>
-    </v-card-title>
-    <v-card-text>
-      <v-text-field
-        v-model="routeStart"
-        label="Start Location"
-        variant="outlined"
-        density="compact"
-        rounded="xl"
-        hide-details
-        class="mb-3"
-      />
-      <v-text-field
-        v-model="routeEnd"
-        label="Destination"
-        variant="outlined"
-        density="compact"
-        rounded="xl"
-        hide-details
-      />
-    </v-card-text>
-    <v-card-actions>
+      <v-dialog v-model="routingDialog" max-width="400">
+        <v-card class="pa-4">
+          <v-card-title>
+            <span class="text-h6">Plan Route</span>
+          </v-card-title>
+          <v-card-text>
+            <v-text-field v-model="routeStart" label="Start Location" variant="outlined" density="compact" rounded="xl"
+              hide-details class="mb-3" />
+            <v-text-field v-model="routeEnd" label="Destination" variant="outlined" density="compact" rounded="xl"
+              hide-details />
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="grey" variant="outlined" rounded="xl" @click="routingDialog = false">Cancel</v-btn>
+            <v-btn color="green" variant="flat" rounded="xl" @click="calculateRoute">Show Route</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+
+
+      <!-- About Section -->
+      <v-divider class="my-2"></v-divider>
+      <v-list-item @click="$router.push('/about')" title="About" prepend-icon="mdi-information-outline"></v-list-item>
+
+
       <v-spacer></v-spacer>
-      <v-btn color="grey" variant="text" @click="routingDialog = false">Cancel</v-btn>
-      <v-btn color="green" rounded="xl" @click="calculateRoute">Show Route</v-btn>
-    </v-card-actions>
-  </v-card>
-</v-dialog>
-
-
-
-       <!-- About Section -->
-       <v-divider class="my-2"></v-divider>
-      <v-list-item  @click="$router.push('/about')" title="About"  prepend-icon="mdi-information-outline"></v-list-item>
-  
-
-      <v-spacer></v-spacer> 
 
       <!-- Logout Button -->
-        <v-list-item
-          @click="confirmLogout"
-          prepend-icon="mdi-logout"
-        >
-          Logout
-        </v-list-item>
-      
+      <v-list-item @click="confirmLogout" prepend-icon="mdi-logout">
+        Logout
+      </v-list-item>
+
     </v-list>
   </v-navigation-drawer>
 
@@ -190,10 +141,10 @@ const searchSuggestions = ref([]);
 const isSearching = ref(false);
 
 // Props
-const props = defineProps(["searchLocation", "takeScreenshot", "useMyLocation","map",
+const props = defineProps(["searchLocation", "takeScreenshot", "useMyLocation", "map",
   "greenIcon"]);
 
-  const map = props.map;
+const map = props.map;
 const greenIcon = props.greenIcon;
 
 // Close dropdown when clicking outside
@@ -297,7 +248,7 @@ const calculateRoute = () => {
   emit("planRoute", {
     start: routeStart.value,
     end: routeEnd.value,
-    routingDialog:routingDialog.value = false,
+    routingDialog: routingDialog.value = false,
   });
 };
 
