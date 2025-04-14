@@ -4,7 +4,6 @@ import Login from "./components/Login.vue";
 import Signup from "./components/Signup.vue";
 import MapCanvas from "./components/MapCanvas.vue";
 import About from "./components/About.vue";
-
 const routes = [
   { path: "/", component: Home },
   { path: "/login", component: Login },

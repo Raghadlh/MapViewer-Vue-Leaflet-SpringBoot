@@ -6,17 +6,34 @@ import "leaflet-draw/dist/leaflet.draw.css";
 import leafletImage from "leaflet-image";
 import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import "leaflet-routing-machine";
-
 import "leaflet-minimap";
 import "leaflet-minimap/dist/Control.MiniMap.min.css";
+import axios from "axios";
 
+axios.defaults.withCredentials = true;
 const mapContainer = ref(null);
 const username = ref("Explorer");
 const showWelcome = ref(true);
+const isDrawing = ref(false);
+const showSavedSnack = ref(false);
+
+const emit = defineEmits(["planRoute"]);
+const API_URL = "http://localhost:8080/api/markers";
+
+const showMarkerDialog = ref(false);
+const currentMarker = ref({
+  id: null,
+  title: "",
+  description: "",
+  latitude: 0,
+  longitude: 0,
+});
 
 let map;
 let drawnItems;
+let markerLayer = L.layerGroup();
 
+//Icons colors
 var greenIcon = new L.Icon({
   iconUrl: "/marker-icon-2x-green.png",
   iconSize: [25, 41],
@@ -25,8 +42,23 @@ var greenIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
+var goldIcon = new L.Icon({
+  iconUrl: "/marker-icon-2x-gold.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+var redIcon = new L.Icon({
+  iconUrl: "/marker-icon-2x-red.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
 // Initialize the map
-onMounted(() => {
+onMounted(async () => {
   const stored = localStorage.getItem("username");
   if (stored) username.value = stored;
 
@@ -117,7 +149,6 @@ onMounted(() => {
       toggleDisplay: true,
       minimized: false,
       position: "bottomleft",
-      aimingRectOptions: { color: "#2ecc71", weight: 2 },
       shadowRectOptions: { color: "#27ae60", weight: 1, opacity: 0.6 },
     }).addTo(map);
 
@@ -168,6 +199,13 @@ onMounted(() => {
       console.log("Deleted items:", event.layers);
     });
 
+    map.on("draw:drawstart", () => {
+      isDrawing.value = true;
+    });
+    map.on("draw:drawstop", () => {
+      isDrawing.value = false;
+    });
+
     const ResetViewControl = L.Control.extend({
       options: {
         position: "bottomright",
@@ -214,6 +252,24 @@ onMounted(() => {
       },
     });
     map.addControl(new ResetViewControl());
+
+    // Add click handler for creating markers
+    map.on("click", (e) => {
+      if (isDrawing.value) return;
+
+      if (e.originalEvent.target.className !== "leaflet-popup-content") {
+        currentMarker.value = {
+          id: null,
+          title: "",
+          description: "",
+          latitude: e.latlng.lat,
+          longitude: e.latlng.lng,
+        };
+        showMarkerDialog.value = true;
+      }
+    });
+    markerLayer = L.layerGroup().addTo(map);
+    await loadMarkers();
   }
 });
 
@@ -234,7 +290,7 @@ const searchLocation = (locationData) => {
     });
 
     // Add new marker
-    L.marker([lat, lon], { icon: greenIcon })
+    L.marker([lat, lon], { icon: redIcon })
       .addTo(map)
       .bindPopup(`<b>${displayName}</b>`)
       .openPopup();
@@ -311,13 +367,128 @@ const takeScreenshot = () => {
       alert("Failed to capture the map.");
       return;
     }
-
     const imgData = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = imgData;
     link.download = "map-screenshot.png";
     link.click();
   });
+};
+
+// CRUD Operations
+const loadMarkers = async () => {
+  try {
+    const userId = localStorage.getItem("userId");
+    console.log("Loading markers with credentials...");
+    const response = await axios.get(`${API_URL}/user/${userId}`);
+    console.log("Markers response:", response.data);
+
+    if (!response.data || !Array.isArray(response.data)) {
+      console.error("Invalid markers data format:", response.data);
+      return;
+    }
+
+    // Clear existing markers
+    markerLayer.clearLayers();
+
+    // Add markers to the map
+    response.data.forEach((marker) => {
+      if (!marker.latitude || !marker.longitude) {
+        console.warn("Marker missing coordinates:", marker);
+        return;
+      }
+
+      const popupContent = marker.id
+        ? `
+    <div style="min-width: 200px">
+      <h4>${marker.title || "Untitled Marker"}</h4>
+      ${marker.description ? `<p>${marker.description}</p>` : ""}
+      <div style="display: flex; gap: 5px; margin-top: 10px;">
+        <button onclick="event.stopPropagation(); window.vm.editMarker(${
+          marker.id
+        })" 
+          style="padding: 3px 8px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">
+          Edit
+        </button>
+        <button onclick="event.stopPropagation(); window.vm.deleteMarker(${
+          marker.id
+        })" 
+          style="padding: 3px 8px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">
+          Delete
+        </button>
+      </div>
+    </div>
+  `
+        : `
+    <div style="min-width: 200px">
+      <h4>${marker.title || "Untitled Marker"}</h4>
+      ${marker.description ? `<p>${marker.description}</p>` : ""}
+      <p style="color: red; font-size: 13px;">(Marker ID is missing. Cannot edit or delete.)</p>
+    </div>
+  `;
+
+      const newMarker = L.marker([marker.latitude, marker.longitude], {
+        icon: goldIcon,
+      })
+        .bindPopup(popupContent)
+        .addTo(markerLayer);
+
+      if (!marker.id) {
+        newMarker.openPopup();
+      }
+    });
+
+    window.vm = {
+      editMarker,
+      deleteMarker,
+    };
+  } catch (error) {
+    console.error("Error loading markers:", error);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
+    }
+  }
+};
+
+const saveMarker = async () => {
+  try {
+    const userId = localStorage.getItem("userId");
+    if (currentMarker.value.id) {
+      await axios.put(
+        `${API_URL}/${currentMarker.value.id}`,
+        currentMarker.value
+      );
+    } else {
+      await axios.post(`${API_URL}/user/${userId}`, currentMarker.value);
+    }
+    showSavedSnack.value = true;
+    showMarkerDialog.value = false;
+    await loadMarkers();
+  } catch (error) {
+    console.error("Error saving marker:", error);
+  }
+};
+
+const editMarker = async (id) => {
+  try {
+    const response = await axios.get(`${API_URL}/${id}`);
+    currentMarker.value = response.data;
+    showMarkerDialog.value = true;
+  } catch (error) {
+    console.error("Error editing marker:", error);
+  }
+};
+
+const deleteMarker = async (id) => {
+  if (confirm("Are you sure you want to delete this marker?")) {
+    try {
+      await axios.delete(`${API_URL}/${id}`);
+      await loadMarkers();
+    } catch (error) {
+      console.error("Error deleting marker:", error);
+    }
+  }
 };
 
 defineExpose({
@@ -327,24 +498,118 @@ defineExpose({
   planRoute,
   map,
   greenIcon,
+  editMarker,
+  deleteMarker,
 });
 </script>
 
 <template>
-  <v-dialog v-model="showWelcome" max-width="400" transition="dialog-transition" persistent>
-    <v-card class="pa-4" variant="flat">
+  <v-dialog
+    class="pa-4 welcome-card"
+    v-model="showWelcome"
+    max-width="420"
+    transition="dialog-bottom-transition"
+    persistent
+  >
+    <v-card class="pa-5 rounded-xl elevation-2">
       <v-row align="center">
         <v-col cols="9">
-          <h3 class="text-subtitle-1">Welcome back, {{ username }} 👋🏼</h3>
-          <p class="text-body-2">Ready to explore the world today?</p>
+          <h2 class="text-h6 font-weight-medium">
+            Welcome back, {{ username }} 👋🏼
+          </h2>
+          <p class="text-body-2 mt-2">Ready to explore the world today?</p>
         </v-col>
       </v-row>
-      <v-divider class="my-2"></v-divider>
-      <v-card-actions>
-        <v-btn color="green" class="rounded-pill" @click="showWelcome = false">Let’s go!</v-btn>
+      <v-divider class="my-3"></v-divider>
+      <v-card-actions class="justify-end">
+        <v-btn
+          color="green"
+          class="rounded-pill px-6"
+          variant="flat"
+          @click="showWelcome = false"
+        >
+          Let’s go!
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- Marker CRUD Dialog -->
+  <v-dialog
+    v-model="showMarkerDialog"
+    max-width="500"
+    transition="dialog-bottom-transition"
+  >
+    <v-card class="rounded-lg elevation-4">
+      <v-card-title class="bg-green text-white">
+        <span class="text-h6">{{
+          currentMarker.id ? "Edit Marker" : "Add New Marker"
+        }}</span>
+      </v-card-title>
+
+      <v-card-text class="pt-4">
+        <v-text-field
+          rounded="xl"
+          v-model="currentMarker.title"
+          label="📍 Marker Title"
+          density="comfortable"
+          variant="outlined"
+          color="green"
+          required
+        />
+        <v-textarea
+          rounded="xl"
+          v-model="currentMarker.description"
+          label="📝 Description"
+          rows="2"
+          variant="outlined"
+          color="green"
+        />
+        <v-row>
+          <v-col cols="6">
+            <v-text-field
+              rounded="xl"
+              v-model="currentMarker.latitude"
+              label="Latitude"
+              type="number"
+              variant="outlined"
+              readonly
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-text-field
+              rounded="xl"
+              v-model="currentMarker.longitude"
+              label="Longitude"
+              type="number"
+              variant="outlined"
+              readonly
+              density="comfortable"
+            />
+          </v-col>
+        </v-row>
+      </v-card-text>
+
+      <v-divider></v-divider>
+      <v-card-actions class="pa-3">
+        <v-spacer></v-spacer>
+        <v-btn
+          rounded="xl"
+          variant="tonal"
+          color="grey"
+          @click="showMarkerDialog = false"
+          >Cancel</v-btn
+        >
+        <v-btn rounded="xl" variant="flat" color="green" @click="saveMarker"
+          >Save</v-btn
+        >
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+  <v-snackbar v-model="showSavedSnack" color="green" timeout="2000">
+    Marker saved successfully!
+  </v-snackbar>
 
   <div ref="mapContainer" class="map-container"></div>
 </template>
@@ -358,5 +623,10 @@ defineExpose({
 
 .leaflet-control-custom {
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.welcome-card {
+  box-shadow: 0 4px 20px rgba(0, 128, 0, 0.15);
+  border-radius: 16px;
 }
 </style>

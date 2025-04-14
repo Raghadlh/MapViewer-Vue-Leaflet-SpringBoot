@@ -100,7 +100,7 @@
       <v-card-actions>
         <v-spacer></v-spacer>
         <v-btn color="green" rounded="xl" @click="dialogs.logout = false">Cancel</v-btn>
-        <v-btn color="error" rounded="xl" @click="logout">Logout</v-btn>
+        <v-btn color="error" rounded="xl" @click="logout">Yes</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

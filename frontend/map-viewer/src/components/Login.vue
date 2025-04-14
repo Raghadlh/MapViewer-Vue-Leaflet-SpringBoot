@@ -5,20 +5,47 @@
         <h2 class="text-center mb-4 gradient-text">Login</h2>
 
         <v-form @submit.prevent="login">
-          <v-text-field variant="outlined" rounded="xl" prepend-icon="mdi-account" v-model="username" label="Username"
-            required></v-text-field>
+          <v-text-field
+            variant="outlined"
+            rounded="xl"
+            prepend-icon="mdi-account"
+            v-model="username"
+            label="Username"
+            required
+          ></v-text-field>
 
-          <v-text-field variant="outlined" rounded="xl" prepend-icon="mdi-lock" v-model="password" label="Password"
-            :type="showPassword ? 'text' : 'password'" append-icon="mdi-eye"
-            @click:append="showPassword = !showPassword" required></v-text-field>
+          <v-text-field
+            variant="outlined"
+            rounded="xl"
+            prepend-icon="mdi-lock"
+            v-model="password"
+            label="Password"
+            :type="showPassword ? 'text' : 'password'"
+            append-icon="mdi-eye"
+            @click:append="showPassword = !showPassword"
+            required
+          ></v-text-field>
 
-          <v-btn elevation="6" rounded="xl" type="submit" color="green" block class="mt-3">
+          <v-btn
+            elevation="6"
+            rounded="xl"
+            type="submit"
+            color="green"
+            block
+            class="mt-3"
+          >
             Login
           </v-btn>
 
           <v-alert v-if="error" type="error" class="mt-3">{{ error }}</v-alert>
 
-          <v-btn color="green" variant="text" rounded="xl" class="mt-2 text-button" @click="$router.push('/signup')">
+          <v-btn
+            color="green"
+            variant="text"
+            rounded="xl"
+            class="mt-2 text-button"
+            @click="$router.push('/signup')"
+          >
             Don't have an account? Sign up
           </v-btn>
         </v-form>
@@ -28,39 +55,50 @@
 </template>
 
 <script>
-import { setLoginStatus } from '../router';
+import { setLoginStatus } from "../router";
 
 export default {
   data() {
     return {
-      username: '',
-      password: '',
-      error: '',
+      username: "",
+      password: "",
+      error: "",
       showPassword: false,
     };
   },
   methods: {
     async login() {
       try {
-        console.log('Sending login request...');
-        const response = await fetch('/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ username: this.username, password: this.password }),
-          credentials: 'include',
+        console.log("Sending login request...");
+        const response = await fetch("/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            username: this.username,
+            password: this.password,
+          }),
+          credentials: "include",
         });
 
-        console.log('Login response:', response.status);
+        console.log("Login response status:", response.status);
 
         if (response.ok) {
+          const data = await response.json();
+          console.log("User data:", data);
+
+          localStorage.setItem("username", data.username);
+          localStorage.setItem("userId", data.id);
+
           setLoginStatus(true);
-          this.$router.push('/map');
-          localStorage.setItem('username', this.username);
+          this.$router.push("/map");
         } else {
-          this.error = 'Invalid username or password';
+          this.error = "Invalid username or password";
         }
       } catch (err) {
-        this.error = 'Login failed. Try again later.';
+        console.error("Login failed:", err);
+        this.error = "Login failed. Try again later.";
       }
     },
   },
@@ -79,7 +117,6 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-
 }
 
 .glass-card {
