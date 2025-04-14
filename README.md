@@ -4,16 +4,19 @@ An interactive map viewer built using Vue.js, Leaflet, and Spring Boot. This pro
 
 ## Features  
 ### **Frontend (Vue.js + Leaflet)**  
--   **Interactive Map** – Browse and navigate locations dynamically.  
--   **Search Functionality** – Search places using the Nominatim API.  
--   **Geolocation** – Use the "Use My Location" feature to find your current location.  
--   **Theming** – Toggle between light/dark modes.  
--   **User Authentication** – Login, Signup, and Logout.  
+- **nteractive Map** – Pan, zoom, and explore with Leaflet.
+- **Custom Marker Management** – Add, edit, and delete your personal landmarks.
+- **Geolocation** – Center the map based on your current location.
+- **Search Functionality** – Find places using the Nominatim API.
+- **Route Planning** – Generate routes between locations using Leaflet Routing Machine.
+- **Theming** – Switch between multiple basemap layers (Street, Satellite, Dark, etc.).
+- **Authentication** – Login, signup, and logout seamlessly.
 
 ### **Backend (Spring Boot + Security)**  
-- *User Authentication** – Secure login & signup using Spring Security.  
-- **JWT & Session Handling** – Manages user sessions effectively.  
-- **CORS Configured** – Ensures cross-origin requests from the frontend.  
+- **User Authentication** – Secure login and signup using Spring Security.
+- **JWT + Session Handling** – Manages sessions securely with token-based auth.
+- **User-Specific Landmarks** – Each user has their own set of stored markers.
+-**CORS Configured** – Allows frontend access during development.
 
 
 ##  Setup Instructions  
